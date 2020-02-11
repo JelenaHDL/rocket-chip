@@ -29,7 +29,9 @@ abstract class TLBusBypassBase(beatBytes: Int, deadlock: Boolean = false, buffer
   protected val error = if (deadlock) LazyModule(new TLDeadlock(params, beatBytes))
                         else LazyModule(new TLError(params, bufferError, beatBytes))
 
-  // order matters
+  // order matters because the parameters and bypass
+  // assume that the non-bypassed connection is
+  // the last connection to the bar, so keep nodeOut last.
   bar.node := nodeIn
   error.node := bar.node
   nodeOut := bar.node
@@ -55,7 +57,7 @@ class TLBypassNode(dFn: TLSlavePortParameters => TLSlavePortParameters)(implicit
     (0, 0)
   }
   def mapParamsD(n: Int, p: Seq[TLMasterPortParameters]): Seq[TLMasterPortParameters] = { p ++ p }
-  def mapParamsU(n: Int, p: Seq[TLSlavePortParameters]): Seq[TLSlavePortParameters] = { Seq(dFn(p.last)) }
+  def mapParamsU(n: Int, p: Seq[TLSlavePortParameters]): Seq[TLSlavePortParameters] = { Seq(dFn(p.last).copy(minLatency = p.map(_.minLatency).min))}
 }
 
 class TLBusBypassBar(dFn: TLSlavePortParameters => TLSlavePortParameters)(implicit p: Parameters) extends LazyModule
